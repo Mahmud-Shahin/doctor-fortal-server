@@ -39,11 +39,35 @@ async function run() {
       .db("doctors_service")
       .collection("services");
 
+    const bookingCollection = client
+      .db("doctors_service")
+      .collection("bookings");
+
     app.get("/service", async (req, res) => {
       const query = {};
       const cursor = serviceCollection.find(query);
       const services = await cursor.toArray();
       res.send(services);
+    });
+
+    /*
+     * APi naming convention
+     *app.get(/booking)--- getting all booking in this collection.get morethan one or by filter
+     *app.get(/booking/:id)- get a specific booking.
+     * app.post(booking/- add a new post
+     * app.patch(/booking/:id)
+     * app.delete(/booking/:id)
+     */
+
+    app.post("/booking", async (req, res) => {
+      const booking = req.body;
+      const query = {
+        treatment: booking.treatment,
+        date: booking.date,
+        patient: booking.patient,
+      };
+      const result = await bookingCollection.insertOne(booking);
+      res.send(result);
     });
   } finally {
   }
