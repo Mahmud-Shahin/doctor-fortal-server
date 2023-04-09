@@ -50,6 +50,30 @@ async function run() {
       res.send(services);
     });
 
+    app.get("/available", async (req, res) => {
+      const date = req.query.date || "April 03, 2023";
+      //step 1:  get all services
+
+      const services = await serviceCollection.find().toArray();
+
+      //step 2 : get the bookings that day
+      const query = { date: date };
+      const bookings = await bookingCollection.find(query).toArray();
+
+      // step 3: for each service. find booking for that service
+
+      services.forEach((service) => {
+        const servicebookings = bookings.filter(
+          (b) => b.treatment === service.name
+        );
+        const booked = servicebookings.map((s) => s.slot);
+        const available = service.slots.filter((s) => !booked.includes(s));
+        service.available = available;
+      });
+
+      res.send(services);
+    });
+
     /*
      * APi naming convention
      *app.get(/booking)--- getting all booking in this collection.get morethan one or by filter
@@ -66,8 +90,12 @@ async function run() {
         date: booking.date,
         patient: booking.patient,
       };
+      const exists = await bookingCollection.findOne(query);
+      if (exists) {
+        return res.send({ success: false, booking: exists });
+      }
       const result = await bookingCollection.insertOne(booking);
-      res.send(result);
+      return res.send({ success: true, result });
     });
   } finally {
   }
