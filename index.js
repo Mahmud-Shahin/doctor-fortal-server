@@ -14,7 +14,7 @@
 // app.listen(port, () => {
 //   console.log(`Doctors portal listening on port ${port}`);
 // });
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
@@ -81,16 +81,16 @@ async function run() {
       res.send(services);
     });
 
-    app.get("/user", async (req, res) => {
-      const users = await userCollection.find().toArray();
-      res.send(users);
-    });
-
     app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
       const user = await userCollection.findOne({ email: email });
       const isAdmin = user.role === "admin";
       res.send({ admin: isAdmin });
+    });
+
+    app.get("/user", async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users);
     });
 
     app.put("/user/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
@@ -130,6 +130,7 @@ async function run() {
     // warning
     // this is not the proper way to query
     // After learning more about mongodb , use aggregate lookup, pipeline, match group
+
     app.get("/available", async (req, res) => {
       const date = req.query.date || "April 03, 2023";
       //step 1:  get all services
@@ -167,17 +168,6 @@ async function run() {
      * app.patch(/booking/:id)
      * app.delete(/booking/:id)
      */
-    app.get("/booking", verifyJWT, async (req, res) => {
-      const patient = req.query.patient;
-      const decodedEmail = req.decoded.email;
-      if (patient === decodedEmail) {
-        const query = { patient: patient };
-        const bookings = await bookingCollection.find(query).toArray();
-        return res.send(bookings);
-      } else {
-        return res.status(403).send({ message: "Forbidden access" });
-      }
-    });
 
     app.post("/booking", async (req, res) => {
       const booking = req.body;
@@ -193,6 +183,26 @@ async function run() {
       const result = await bookingCollection.insertOne(booking);
       return res.send({ success: true, result });
     });
+
+    app.get("/booking", verifyJWT, async (req, res) => {
+      const patient = req.query.patient;
+      const decodedEmail = req.decoded.email;
+      if (patient === decodedEmail) {
+        const query = { patient: patient };
+        const bookings = await bookingCollection.find(query).toArray();
+        return res.send(bookings);
+      } else {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
+    });
+
+    app.get("/booking/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const booking = await bookingCollection.findOne(query);
+      res.send(booking);
+    });
+
     // app.get("/doctor",verifyJWT, verifyAdmin, async (req, res) => {
     app.get("/doctor", async (req, res) => {
       const doctors = await doctorCollection.find().toArray();
